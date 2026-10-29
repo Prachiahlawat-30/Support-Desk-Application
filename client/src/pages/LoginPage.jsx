@@ -3,6 +3,7 @@ import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext.jsx';
 import { Spinner } from '../components/Feedback.jsx';
 import { Field } from '../components/Field.jsx';
+import { BrandMark } from '../components/shell/AppShell.jsx';
 
 const DEMO_ACCOUNTS = [
   { label: 'Admin', email: 'admin@demo.test', password: 'admin123' },
@@ -40,8 +41,13 @@ export function LoginPage() {
   return (
     <div className="login-page">
       <form className="card login-card" onSubmit={handleSubmit} noValidate>
-        <h1>Comhord</h1>
-        <p className="muted">Support desk sign-in</p>
+        <div className="login-brand">
+          <BrandMark size={40} />
+          <div>
+            <h1>Comhord</h1>
+            <p className="muted">Sign in to your support workspace</p>
+          </div>
+        </div>
 
         {error && (
           <div className="alert alert-error" role="alert">

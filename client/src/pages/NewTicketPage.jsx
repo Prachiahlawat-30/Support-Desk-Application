@@ -6,6 +6,7 @@ import { Field } from '../components/Field.jsx';
 import { useAgents } from '../hooks/useAgents.js';
 import { LIMITS, PRIORITIES, STATUSES } from '../lib/constants.js';
 import { validateTicketForm } from '../lib/validation.js';
+import { PageHeader } from '../components/ui/PageHeader.jsx';
 
 const EMPTY = {
   subject: '',
@@ -63,12 +64,16 @@ export function NewTicketPage() {
 
   return (
     <div className="page page-narrow">
-      <div className="page-header">
-        <h1>New ticket</h1>
-        <Link to="/tickets" className="btn btn-link">
-          Cancel
-        </Link>
-      </div>
+      <PageHeader
+        eyebrow="Tickets"
+        title="New ticket"
+        description="Log a customer issue. A customer name or email is required."
+        actions={
+          <Link to="/tickets" className="btn btn-ghost">
+            Cancel
+          </Link>
+        }
+      />
 
       <form className="card form" onSubmit={handleSubmit} noValidate>
         {serverError && (

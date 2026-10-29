@@ -3,12 +3,12 @@ import { EmptyState } from '../components/Feedback.jsx';
 
 export function NotFoundPage() {
   return (
-    <div className="card">
+    <div className="panel">
       <EmptyState
         title="Page not found"
         action={
           <Link to="/" className="btn">
-            Back to dashboard
+            Back to overview
           </Link>
         }
       >

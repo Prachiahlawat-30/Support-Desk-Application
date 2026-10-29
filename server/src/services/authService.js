@@ -28,14 +28,19 @@ export function signToken(user) {
   return jwt.sign({ sub: String(user.id), role: user.role }, config.jwtSecret, { expiresIn: config.jwtExpiresIn });
 }
 
-/** Returns the user id from a valid token, or throws 401. */
-export function verifyToken(token) {
+/** Returns `{ userId, expiresAt }` (ms) from a valid token, or throws 401. */
+export function verifyTokenClaims(token) {
   try {
     const payload = jwt.verify(token, config.jwtSecret);
-    return Number(payload.sub);
+    return { userId: Number(payload.sub), expiresAt: payload.exp ? payload.exp * 1000 : null };
   } catch {
     throw unauthorized('Your session has expired. Please sign in again.');
   }
+}
+
+/** Returns the user id from a valid token, or throws 401. */
+export function verifyToken(token) {
+  return verifyTokenClaims(token).userId;
 }
 
 export async function login(email, password) {

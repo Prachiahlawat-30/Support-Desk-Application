@@ -14,6 +14,8 @@ import {
 import { diffTicket } from '../domain/ticketChanges.js';
 import { badRequest, notFound, validationError } from '../utils/httpError.js';
 import { listEscalations } from './escalationService.js';
+import { UPDATE_REASONS } from '../realtime/events.js';
+import { publish } from '../realtime/publisher.js';
 import { toEvent, toMessage, toTicket } from './mappers.js';
 import { findUserById } from './userService.js';
 
@@ -36,6 +38,14 @@ const ORDER_BY = {
 function escapeLike(value) {
   return value.replace(/[\\%_]/g, (c) => `\\${c}`);
 }
+
+// The ticket field a history entry is about (status, priority and assignee events carry no field name).
+const EVENT_FIELDS = {
+  [EVENT_TYPES.STATUS_CHANGED]: 'status',
+  [EVENT_TYPES.PRIORITY_CHANGED]: 'priority',
+  [EVENT_TYPES.ASSIGNEE_CHANGED]: 'assigneeId',
+};
+const changedField = (change) => EVENT_FIELDS[change.eventType] ?? change.field;
 
 async function fetchTicket(db, id) {
   const { rows } = await db.query(`${TICKET_SELECT} WHERE t.id = $1`, [id]);
@@ -135,7 +145,7 @@ export async function getTicketDetail(id) {
 }
 
 export async function createTicket(input, actor) {
-  return withTransaction(async (db) => {
+  const ticket = await withTransaction(async (db) => {
     const assigneeName = await resolveAssigneeName(db, input.assigneeId);
     const { rows } = await db.query(
       `INSERT INTO tickets
@@ -160,10 +170,14 @@ export async function createTicket(input, actor) {
     }
     return fetchTicket(db, id);
   });
+  // After commit: tell open workspaces a ticket exists.
+  publish.ticketCreated(ticket, actor.id);
+  return ticket;
 }
 
 export async function updateTicket(id, patch, actor) {
-  return withTransaction(async (db) => {
+  let changes = [];
+  const ticket = await withTransaction(async (db) => {
     // Lock the row so concurrent updates can't interleave their history entries.
     const { rows } = await db.query(
       `SELECT t.*, a.name AS assignee_name
@@ -182,7 +196,7 @@ export async function updateTicket(id, patch, actor) {
       throw validationError({ customer: 'Provide a customer name or email' });
     }
 
-    const changes = diffTicket(before, after);
+    changes = diffTicket(before, after);
     if (changes.length === 0) return fetchTicket(db, id); // no-op: keep updated_at and history untouched
 
     await db.query(
@@ -206,10 +220,21 @@ export async function updateTicket(id, patch, actor) {
     for (const change of changes) await insertEvent(db, id, actor.id, change);
     return fetchTicket(db, id);
   });
+  // After commit, and only when something changed (a no-op update sends nothing).
+  if (changes.length) {
+    publish.ticketUpdated({
+      ticketId: id,
+      ticket,
+      fields: changes.map(changedField),
+      reason: UPDATE_REASONS.EDITED,
+      actorId: actor.id,
+    });
+  }
+  return ticket;
 }
 
 export async function addMessage(ticketId, { kind, body }, actor) {
-  return withTransaction(async (db) => {
+  const message = await withTransaction(async (db) => {
     const { rowCount } = await db.query('SELECT 1 FROM tickets WHERE id = $1 FOR UPDATE', [ticketId]);
     if (rowCount === 0) throw notFound(`Ticket #${ticketId} was not found`);
 
@@ -230,12 +255,17 @@ export async function addMessage(ticketId, { kind, body }, actor) {
     });
     return toMessage({ ...rows[0], author_name: actor.name });
   });
+  // After commit. Who receives a note is decided from the saved message's kind.
+  void publish.messageAdded(message);
+  publish.ticketUpdated({ ticketId, reason: UPDATE_REASONS.MESSAGE, actorId: actor.id });
+  return message;
 }
 
 /** Deletes a ticket; its messages and history are removed by ON DELETE CASCADE. */
-export async function deleteTicket(id) {
+export async function deleteTicket(id, actor = null) {
   const { rowCount } = await query('DELETE FROM tickets WHERE id = $1', [id]);
   if (rowCount === 0) throw notFound(`Ticket #${id} was not found`);
+  publish.ticketDeleted(id, actor?.id);
 }
 
 export function parseTicketId(raw) {

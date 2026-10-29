@@ -1,4 +1,27 @@
+import {
+  CheckCheck,
+  CircleDot,
+  Flag,
+  Lock,
+  MessageSquare,
+  Pencil,
+  Plus,
+  Siren,
+  UserRound,
+} from 'lucide-react';
 import { formatDateTime, timeAgo } from '../../lib/format.js';
+
+const EVENT_ICONS = {
+  created: Plus,
+  status_changed: CircleDot,
+  priority_changed: Flag,
+  assignee_changed: UserRound,
+  field_updated: Pencil,
+  reply_added: MessageSquare,
+  note_added: Lock,
+  escalated: Siren,
+  escalation_acknowledged: CheckCheck,
+};
 
 const FIELD_LABELS = {
   subject: 'subject',
@@ -43,16 +66,24 @@ export function ActivityLog({ events }) {
   if (events.length === 0) return <p className="muted">No activity recorded.</p>;
   return (
     <ol className="activity">
-      {events.map((e) => (
-        <li key={e.id} className={`activity-item activity-${e.eventType}`}>
-          <div>
-            <span className="activity-actor">{e.actorName ?? 'System'}</span> {describe(e)}
-          </div>
-          <time dateTime={e.createdAt} title={formatDateTime(e.createdAt)} className="muted small">
-            {timeAgo(e.createdAt)}
-          </time>
-        </li>
-      ))}
+      {events.map((e) => {
+        const Icon = EVENT_ICONS[e.eventType] ?? CircleDot;
+        return (
+          <li key={e.id} className={`activity-item activity-${e.eventType}`}>
+            <span className="activity-icon" aria-hidden="true">
+              <Icon size={12} strokeWidth={2.2} />
+            </span>
+            <div className="activity-text">
+              <div>
+                <span className="activity-actor">{e.actorName ?? 'System'}</span> {describe(e)}
+              </div>
+              <time dateTime={e.createdAt} title={formatDateTime(e.createdAt)} className="muted small">
+                {timeAgo(e.createdAt)}
+              </time>
+            </div>
+          </li>
+        );
+      })}
     </ol>
   );
 }

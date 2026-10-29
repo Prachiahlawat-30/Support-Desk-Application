@@ -1,7 +1,7 @@
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './auth/AuthContext.jsx';
 import { Loading } from './components/Feedback.jsx';
-import { Layout } from './components/Layout.jsx';
+import { AppShell } from './components/shell/AppShell.jsx';
 import { AnalyticsPage } from './pages/AnalyticsPage.jsx';
 import { DashboardPage } from './pages/DashboardPage.jsx';
 import { LoginPage } from './pages/LoginPage.jsx';
@@ -27,7 +27,7 @@ export default function App() {
           <Route
             element={
               <RequireAuth>
-                <Layout />
+                <AppShell />
               </RequireAuth>
             }
           >

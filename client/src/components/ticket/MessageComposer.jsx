@@ -1,11 +1,12 @@
+import { Lock, MessageSquare, Sparkles } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { api } from '../../api/client.js';
 import { LIMITS } from '../../lib/constants.js';
 import { Spinner } from '../Feedback.jsx';
 
 const MODES = {
-  reply: { tab: 'Public reply', placeholder: 'Write a reply to the customer…', submit: 'Send reply' },
-  note: { tab: 'Internal note', placeholder: 'Note for the team (customers never see this)', submit: 'Add internal note' },
+  reply: { icon: MessageSquare, tab: 'Public reply', placeholder: 'Write a reply to the customer…', submit: 'Send reply' },
+  note: { icon: Lock, tab: 'Internal note', placeholder: 'Note for the team (customers never see this)', submit: 'Add internal note' },
 };
 
 // Retrying cannot fix these, so no "Try again" for them.
@@ -114,7 +115,7 @@ export function MessageComposer({ ticketId, onAdded }) {
               setError(null);
             }}
           >
-            {m.tab}
+            <m.icon size={14} aria-hidden="true" /> {m.tab}
           </button>
         ))}
       </div>
@@ -135,13 +136,15 @@ export function MessageComposer({ ticketId, onAdded }) {
             </>
           ) : (
             <>
-              <button type="button" className="btn btn-small" onClick={startDraft} disabled={generating || choosing}>
+              <button type="button" className="btn btn-small btn-ai" onClick={startDraft} disabled={generating || choosing}>
                 {generating ? (
                   <>
                     <Spinner small /> Generating draft…
                   </>
                 ) : (
-                  'Draft with AI'
+                  <>
+                    <Sparkles size={14} aria-hidden="true" /> Draft with AI
+                  </>
                 )}
               </button>
               <span className="muted small">Nothing is sent until you click Send reply.</span>

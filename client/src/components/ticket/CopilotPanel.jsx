@@ -1,3 +1,4 @@
+import { RefreshCw, Sparkles } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { api } from '../../api/client.js';
 import { timeAgo } from '../../lib/format.js';
@@ -52,23 +53,29 @@ export function CopilotPanel({ ticket }) {
 
   return (
     <section className="card copilot" aria-labelledby="copilot-title" aria-busy={running}>
-      <div className="card-header">
-        <h2 id="copilot-title">AI Support Copilot</h2>
-        {result && (
+      <div className="panel-head">
+        <div className="panel-title-icon">
+          <span className="icon-chip tone-accent" aria-hidden="true">
+            <Sparkles size={16} />
+          </span>
+          <div>
+            <h2 id="copilot-title">AI Support Copilot</h2>
+            <p className="panel-desc">Suggestions for you to review. The ticket isn't changed.</p>
+          </div>
+        </div>
+        {result ? (
           <button type="button" className="btn btn-small" onClick={analyze} disabled={running}>
+            <RefreshCw size={14} className={running ? 'spin' : ''} aria-hidden="true" />
             {running ? 'Analyzing…' : 'Analyze again'}
+          </button>
+        ) : (
+          <button type="button" className="btn btn-primary btn-small" onClick={analyze} disabled={running}>
+            <Sparkles size={14} aria-hidden="true" />
+            {running ? 'Analyzing…' : 'Analyze ticket'}
           </button>
         )}
       </div>
-      <p className="muted small copilot-intro">
-        Suggestions only. The ticket isn't changed.
-      </p>
 
-      {!result && (
-        <button type="button" className="btn btn-primary" onClick={analyze} disabled={running}>
-          {running ? 'Analyzing…' : 'Analyze ticket'}
-        </button>
-      )}
 
       {running && (
         <p className="copilot-status muted small" role="status">

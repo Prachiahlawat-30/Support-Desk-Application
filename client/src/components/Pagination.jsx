@@ -1,3 +1,5 @@
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+
 export function Pagination({ pagination, onPageChange }) {
   const { page, pageSize, total, totalPages } = pagination;
   if (total === 0) return null;
@@ -11,9 +13,9 @@ export function Pagination({ pagination, onPageChange }) {
       </span>
       <div className="pagination-buttons">
         <button type="button" className="btn btn-small" disabled={page <= 1} onClick={() => onPageChange(page - 1)}>
-          ← Previous
+          <ChevronLeft size={15} aria-hidden="true" /> Previous
         </button>
-        <span>
+        <span className="pagination-page">
           Page {page} of {totalPages}
         </span>
         <button
@@ -22,7 +24,7 @@ export function Pagination({ pagination, onPageChange }) {
           disabled={page >= totalPages}
           onClick={() => onPageChange(page + 1)}
         >
-          Next →
+          Next <ChevronRight size={15} aria-hidden="true" />
         </button>
       </div>
     </nav>

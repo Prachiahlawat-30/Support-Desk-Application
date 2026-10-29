@@ -3,6 +3,9 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { api } from '../api/client.js';
 import { BarList, ColumnChart } from '../components/analytics/Charts.jsx';
 import { ErrorMessage, Loading } from '../components/Feedback.jsx';
+import { MetricCard } from '../components/ui/MetricCard.jsx';
+import { PageHeader } from '../components/ui/PageHeader.jsx';
+import { CircleCheck, Clock, Download, Inbox, MessageSquare, Timer } from 'lucide-react';
 import { ticketsLink, UNRESOLVED } from '../lib/dashboardCards.js';
 import { formatMinutes } from '../lib/sla.js';
 
@@ -65,14 +68,8 @@ function duration(seconds) {
 const count = (n) => (n === null || n === undefined ? '—' : n.toLocaleString());
 const pct = (n) => (n === null || n === undefined ? '—' : `${n}%`);
 
-function Tile({ label, value, detail }) {
-  return (
-    <div className="stat-card">
-      <span className="stat-value">{value}</span>
-      <span className="stat-label">{label}</span>
-      {detail && <span className="stat-hint">{detail}</span>}
-    </div>
-  );
+function Tile({ label, value, detail, icon, tone }) {
+  return <MetricCard icon={icon} tone={tone} label={label} value={value} hint={detail} />;
 }
 
 function RangePicker({ params, setParams, range }) {
@@ -166,6 +163,7 @@ function ExportControl({ query }) {
         ))}
       </select>
       <button type="button" className="btn" onClick={run} disabled={busy}>
+        <Download size={15} aria-hidden="true" />
         {busy ? 'Exporting…' : 'Export CSV'}
       </button>
       <ErrorMessage error={error} />
@@ -214,10 +212,12 @@ export function AnalyticsPage() {
 
   return (
     <div className="page analytics">
-      <div className="page-header">
-        <h1>Analytics</h1>
-        {o && <ExportControl query={query} />}
-      </div>
+      <PageHeader
+        eyebrow="Workspace"
+        title="Analytics"
+        description="Ticket volume, first-response SLA performance and agent workload for the selected period."
+        actions={o && <ExportControl query={query} />}
+      />
 
       <RangePicker key={queryKey} params={params} setParams={setParams} range={range} />
 
@@ -237,13 +237,15 @@ export function AnalyticsPage() {
           </p>
 
           <section aria-labelledby="period-title">
-            <h2 id="period-title" className="stat-group-title">
+            <h2 id="period-title" className="section-title">
               In this period
             </h2>
-            <div className="stat-grid">
-              <Tile label="Tickets created" value={count(o.period.created)} />
-              <Tile label="Tickets resolved" value={count(o.resolution.resolved)} />
+            <div className="metric-grid period-grid">
+              <Tile icon={Inbox} tone="neutral" label="Tickets created" value={count(o.period.created)} />
+              <Tile icon={CircleCheck} tone="success" label="Tickets resolved" value={count(o.resolution.resolved)} />
               <Tile
+                icon={Timer}
+                tone="accent"
                 label="First-response SLA met"
                 value={pct(o.sla.compliancePercent)}
                 detail={
@@ -252,8 +254,16 @@ export function AnalyticsPage() {
                     : `${o.sla.met} met · ${o.sla.breached} breached`
                 }
               />
-              <Tile label="Avg first response" value={duration(o.sla.averageFirstResponseSeconds)} detail={`${o.sla.responded} replied tickets`} />
               <Tile
+                icon={MessageSquare}
+                tone="violet"
+                label="Avg first response"
+                value={duration(o.sla.averageFirstResponseSeconds)}
+                detail={`${o.sla.responded} replied tickets`}
+              />
+              <Tile
+                icon={Clock}
+                tone="neutral"
                 label="Avg resolution time"
                 value={duration(o.resolution.averageSeconds)}
                 detail={`Median ${duration(o.resolution.medianSeconds)}`}

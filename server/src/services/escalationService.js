@@ -2,6 +2,8 @@ import { config } from '../config.js';
 import { query, withTransaction } from '../db/pool.js';
 import { ESCALATION_STAGES } from '../domain/constants.js';
 import { escalationDueSql, slaDeadlineSql } from '../domain/rules.js';
+import { UPDATE_REASONS } from '../realtime/events.js';
+import { publish } from '../realtime/publisher.js';
 import { notFound } from '../utils/httpError.js';
 
 // SLA escalation. The check records each stage a ticket reaches, once: the
@@ -58,6 +60,10 @@ export async function runEscalationCheck({ now = null } = {}) {
       for (;;) {
         const ids = await escalateBatch(stage, now);
         result.escalated.push(...ids.map((ticketId) => ({ ticketId, stage })));
+        // Each batch is one committed statement, so viewers can be told right away.
+        for (const ticketId of ids) {
+          publish.ticketUpdated({ ticketId, fields: ['escalation'], reason: UPDATE_REASONS.ESCALATION });
+        }
         if (ids.length < BATCH_SIZE) break;
       }
     } catch (err) {
@@ -93,7 +99,7 @@ export async function listEscalations(ticketId, db = { query }) {
  * the ticket itself.
  */
 export async function acknowledgeEscalations(ticketId, user) {
-  return withTransaction(async (db) => {
+  const result = await withTransaction(async (db) => {
     const ticket = await db.query('SELECT 1 FROM tickets WHERE id = $1 FOR UPDATE', [ticketId]);
     if (ticket.rowCount === 0) throw notFound(`Ticket #${ticketId} was not found`);
 
@@ -113,4 +119,13 @@ export async function acknowledgeEscalations(ticketId, user) {
     }
     return { acknowledgedStages: stages, escalations: await listEscalations(ticketId, db) };
   });
+  if (result.acknowledgedStages.length) {
+    publish.ticketUpdated({
+      ticketId,
+      fields: ['escalation'],
+      reason: UPDATE_REASONS.ESCALATION_ACKNOWLEDGED,
+      actorId: user.id,
+    });
+  }
+  return result;
 }

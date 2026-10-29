@@ -3,7 +3,12 @@ import { slug } from '../lib/constants.js';
 import { describeSla, liveSla } from '../lib/sla.js';
 
 export function StatusBadge({ status }) {
-  return <span className={`badge status-${slug(status)}`}>{status}</span>;
+  return (
+    <span className={`badge status-${slug(status)}`}>
+      <span className="badge-dot" aria-hidden="true" />
+      {status}
+    </span>
+  );
 }
 
 export function PriorityBadge({ priority }) {

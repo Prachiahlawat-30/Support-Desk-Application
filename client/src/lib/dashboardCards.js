@@ -32,6 +32,7 @@ export const STATUS_CARDS = [
 export const ATTENTION_CARDS = [
   {
     key: 'urgent',
+    group: 'queue',
     label: 'Urgent',
     hint: () => 'Urgent priority, not resolved',
     to: ticketsLink({ priority: 'Urgent', status: UNRESOLVED }),
@@ -39,6 +40,7 @@ export const ATTENTION_CARDS = [
   },
   {
     key: 'overdue',
+    group: 'queue',
     label: 'Overdue',
     hint: (rules) => `Not resolved, created over ${rules.overdueHours}h ago`,
     to: ticketsLink({ overdue: 'true' }),
@@ -46,6 +48,7 @@ export const ATTENTION_CARDS = [
   },
   {
     key: 'slaBreached',
+    group: 'sla',
     label: 'SLA breached',
     hint: (rules) => `Not resolved, first reply missed ${rules.slaFirstResponseHours}h target`,
     to: ticketsLink({ slaBreached: 'true', status: UNRESOLVED }),
@@ -53,6 +56,7 @@ export const ATTENTION_CARDS = [
   },
   {
     key: 'slaDue',
+    group: 'sla',
     label: 'Reply due soon',
     hint: () => 'No public reply, SLA deadline within the hour',
     to: ticketsLink({ slaDue: 'true' }),
@@ -60,6 +64,7 @@ export const ATTENTION_CARDS = [
   },
   {
     key: 'escalated',
+    group: 'escalation',
     label: 'Escalated',
     hint: () => 'SLA breached and still no public reply',
     to: ticketsLink({ escalation: 'active' }),
@@ -67,6 +72,7 @@ export const ATTENTION_CARDS = [
   },
   {
     key: 'escalatedLevel2',
+    group: 'escalation',
     label: 'Senior attention',
     hint: (rules) => `No public reply ${rules.escalationLevel2Hours}h after the deadline`,
     to: ticketsLink({ escalation: 'level2' }),
@@ -74,6 +80,7 @@ export const ATTENTION_CARDS = [
   },
   {
     key: 'unassigned',
+    group: 'queue',
     label: 'Unassigned',
     hint: () => 'Not resolved, no agent assigned',
     to: ticketsLink({ assignee: 'unassigned', status: UNRESOLVED }),

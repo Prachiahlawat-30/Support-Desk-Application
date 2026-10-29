@@ -4,6 +4,9 @@ import { api } from '../api/client.js';
 import { PriorityBadge, SlaBadge, StatusBadge, TicketFlags } from '../components/Badges.jsx';
 import { EmptyState, ErrorMessage, Loading, Spinner } from '../components/Feedback.jsx';
 import { Pagination } from '../components/Pagination.jsx';
+import { PageHeader } from '../components/ui/PageHeader.jsx';
+import { useWorkspaceChanges } from '../hooks/useRealtime.js';
+import { ListFilter, Search, SearchX, X } from 'lucide-react';
 import { useAgents } from '../hooks/useAgents.js';
 import { PRIORITIES, SORT_OPTIONS, STATUSES } from '../lib/constants.js';
 import { customerLabel, formatDateTime, timeAgo } from '../lib/format.js';
@@ -54,6 +57,9 @@ export function TicketListPage() {
   }, [searchInput, urlSearch, updateParams]);
 
   const [reloadKey, setReloadKey] = useState(0);
+  // Another user changed a ticket: reload this page of results with the same filters and
+  // sort, so rows update, appear or drop out exactly as the API decides.
+  useWorkspaceChanges(() => setReloadKey((k) => k + 1), { delayMs: 500 });
   useEffect(() => {
     let ignore = false; // drop responses that arrive after the filters changed again
     setLoading(true);
@@ -81,20 +87,41 @@ export function TicketListPage() {
 
   return (
     <div className="page">
-      <div className="page-header">
-        <h1>Tickets</h1>
-        {loading && result && <Spinner small />}
-      </div>
+      <PageHeader
+        eyebrow="Workspace"
+        title="Tickets"
+        description={
+          result
+            ? `${result.pagination.total.toLocaleString()} ${result.pagination.total === 1 ? 'ticket' : 'tickets'}${hasFilters ? ' match the current filters' : ''}`
+            : 'Search, filter and sort every ticket.'
+        }
+        actions={loading && result ? <Spinner small /> : null}
+      />
 
-      <div className="card filters" role="search">
-        <input
-          type="search"
-          className="filter-search"
-          placeholder="Search tickets…"
-          aria-label="Search tickets"
-          value={searchInput}
-          onChange={(e) => setSearchInput(e.target.value)}
-        />
+      <div className="panel toolbar" role="search">
+        <div className="toolbar-row">
+          <label className="search-field">
+            <Search size={15} aria-hidden="true" />
+            <input
+              type="search"
+              placeholder="Search subject, customer or email…"
+              aria-label="Search tickets"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+            />
+          </label>
+          <select aria-label="Sort tickets" className="toolbar-sort" {...select('sort')}>
+            {SORT_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value === 'updated' ? '' : o.value}>
+                Sort: {o.label}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="toolbar-row toolbar-filters">
+          <span className="toolbar-label">
+            <ListFilter size={14} aria-hidden="true" /> Filters
+          </span>
         <select aria-label="Filter by status" {...select('status')}>
           <option value="">All statuses</option>
           {STATUSES.map((s) => (
@@ -123,23 +150,23 @@ export function TicketListPage() {
           <option value="active">Escalated</option>
           <option value="level2">Senior attention</option>
         </select>
-        <label className="checkbox">
+        <label className="chip-toggle">
           <input
             type="checkbox"
             checked={params.get('overdue') === 'true'}
             onChange={(e) => updateParams({ overdue: e.target.checked ? 'true' : '' })}
           />
-          Overdue only
+          Overdue
         </label>
-        <label className="checkbox">
+        <label className="chip-toggle">
           <input
             type="checkbox"
             checked={params.get('slaBreached') === 'true'}
             onChange={(e) => updateParams({ slaBreached: e.target.checked ? 'true' : '' })}
           />
-          SLA breached only
+          SLA breached
         </label>
-        <label className="checkbox">
+        <label className="chip-toggle">
           <input
             type="checkbox"
             checked={params.get('slaDue') === 'true'}
@@ -147,18 +174,12 @@ export function TicketListPage() {
           />
           Reply due soon
         </label>
-        <select aria-label="Sort tickets" {...select('sort')}>
-          {SORT_OPTIONS.map((o) => (
-            <option key={o.value} value={o.value === 'updated' ? '' : o.value}>
-              Sort: {o.label}
-            </option>
-          ))}
-        </select>
         {hasFilters && (
-          <button type="button" className="btn btn-link" onClick={clearFilters}>
-            Clear filters
+          <button type="button" className="btn btn-ghost btn-small" onClick={clearFilters}>
+            <X size={14} aria-hidden="true" /> Clear filters
           </button>
         )}
+        </div>
       </div>
 
       <ErrorMessage error={error} onRetry={() => setReloadKey((k) => k + 1)} />
@@ -166,9 +187,10 @@ export function TicketListPage() {
       {!result && loading && <Loading label="Loading tickets…" />}
 
       {result && result.data.length === 0 && !loading && (
-        <div className="card">
+        <div className="panel">
           {hasFilters ? (
             <EmptyState
+              icon={SearchX}
               title="No tickets match these filters"
               action={
                 <button type="button" className="btn" onClick={clearFilters}>
@@ -194,25 +216,27 @@ export function TicketListPage() {
       )}
 
       {result && result.data.length > 0 && (
-        <div className={`card table-card${loading ? ' is-refreshing' : ''}`}>
-          <table className="table table-clickable">
+        <div className={`panel panel-flush${loading ? ' is-refreshing' : ''}`}>
+          <div className="table-surface table-surface-flush">
+          <table className="table table-clickable tickets-table">
             <thead>
               <tr>
-                <th>Subject</th>
-                <th>Customer</th>
-                <th>Status</th>
-                <th>Priority</th>
-                <th>First response</th>
-                <th>Assignee</th>
-                <th>Last updated</th>
+                <th scope="col">Ticket</th>
+                <th scope="col">Customer</th>
+                <th scope="col">Status</th>
+                <th scope="col">Priority</th>
+                <th scope="col">First response</th>
+                <th scope="col">Assignee</th>
+                <th scope="col" className="num">Updated</th>
               </tr>
             </thead>
             <tbody>
               {result.data.map((t) => (
                 <tr key={t.id} onClick={() => navigate(`/tickets/${t.id}`)} className={t.isOverdue ? 'row-overdue' : ''}>
-                  <td>
-                    <Link to={`/tickets/${t.id}`} onClick={(e) => e.stopPropagation()} className="ticket-link">
-                      <span className="muted">#{t.id}</span> {t.subject}
+                  <td className="cell-subject">
+                    <Link to={`/tickets/${t.id}`} onClick={(e) => e.stopPropagation()} className="ticket-link" title={t.subject}>
+                      <span className="ticket-id">#{t.id}</span>
+                      <span className="ticket-subject">{t.subject}</span>
                     </Link>
                     <div className="flags">
                       <TicketFlags ticket={t} showSla={false} />
@@ -232,11 +256,12 @@ export function TicketListPage() {
                     <SlaBadge sla={t.sla} />
                   </td>
                   <td>{t.assigneeName ?? <span className="muted">Unassigned</span>}</td>
-                  <td title={formatDateTime(t.updatedAt)}>{timeAgo(t.updatedAt)}</td>
+                  <td className="num muted" title={formatDateTime(t.updatedAt)}>{timeAgo(t.updatedAt)}</td>
                 </tr>
               ))}
             </tbody>
           </table>
+          </div>
           <Pagination pagination={result.pagination} onPageChange={(page) => updateParams({ page: String(page) })} />
         </div>
       )}

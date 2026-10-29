@@ -1,3 +1,5 @@
+import { Inbox } from 'lucide-react';
+
 export function Spinner({ small = false }) {
   return <span className={`spinner${small ? ' spinner-small' : ''}`} role="status" aria-label="Loading" />;
 }
@@ -25,9 +27,12 @@ export function ErrorMessage({ error, onRetry }) {
   );
 }
 
-export function EmptyState({ title, children, action }) {
+export function EmptyState({ title, children, action, icon: Icon = Inbox }) {
   return (
     <div className="empty-state">
+      <span className="empty-icon" aria-hidden="true">
+        <Icon size={20} strokeWidth={1.8} />
+      </span>
       <h3>{title}</h3>
       {children && <p>{children}</p>}
       {action}

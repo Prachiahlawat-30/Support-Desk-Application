@@ -44,7 +44,7 @@ ticketsRouter.patch('/:id', async (req, res) => {
 
 // Deletion policy: admins only; replies, notes and history are removed with the ticket.
 ticketsRouter.delete('/:id', requireRole('admin'), async (req, res) => {
-  await deleteTicket(parseTicketId(req.params.id));
+  await deleteTicket(parseTicketId(req.params.id), req.user);
   res.status(204).end();
 });
 
